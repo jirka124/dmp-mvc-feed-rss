@@ -12,6 +12,11 @@
     <a asp-action="Create" class="btn btn-primary">Add Feed</a>
 </div>
 
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-info" role="alert">@statusMessage</div>
+}
+
 <div class="table-responsive">
     <table class="table align-middle">
         <thead>
@@ -30,6 +35,9 @@
                 <td><a href="@item.Url" target="_blank" rel="noreferrer noopener">@Html.DisplayFor(modelItem => item.Url)</a></td>
                 <td>@Html.DisplayFor(modelItem => item.LastReloadedAt)</td>
                 <td class="text-end">
+                    <form asp-action="Reload" asp-route-id="@item.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Reload</button>
+                    </form> |
                     <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
                     <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
                     <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>

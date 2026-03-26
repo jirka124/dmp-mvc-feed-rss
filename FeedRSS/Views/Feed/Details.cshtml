@@ -10,10 +10,18 @@
         <h1 class="mb-0">@Model.Name</h1>
     </div>
     <div class="d-flex gap-2">
+        <form asp-action="Reload" asp-route-id="@Model.Id" method="post" class="d-inline">
+            <button type="submit" class="btn btn-primary">Reload Articles</button>
+        </form>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Edit</a>
         <a asp-action="Index" class="btn btn-outline-dark">Back</a>
     </div>
 </div>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-info" role="alert">@statusMessage</div>
+}
 
 <div class="row g-4">
     <div class="col-lg-4">

@@ -6,16 +6,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FeedRSS.Data;
 using FeedRSS.Models;
+using FeedRSS.Services;
 
 namespace FeedRSS.Controllers
 {
     public class FeedController : Controller
     {
         private readonly MvcFeedContext _context;
+        private readonly IRssService _rssService;
 
-        public FeedController(MvcFeedContext context)
+        public FeedController(MvcFeedContext context, IRssService rssService)
         {
             _context = context;
+            _rssService = rssService;
         }
 
         // GET: Feed
@@ -147,6 +150,28 @@ namespace FeedRSS.Controllers
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reload(int id, CancellationToken cancellationToken)
+        {
+            if (!FeedExists(id))
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                var added = await _rssService.ReloadFeedAsync(id, cancellationToken);
+                TempData["StatusMessage"] = $"Feed reloaded successfully. Added {added} new article(s).";
+            }
+            catch (Exception)
+            {
+                TempData["StatusMessage"] = "Feed reload failed. Please check the feed URL and try again.";
+            }
+
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         private bool FeedExists(int id)

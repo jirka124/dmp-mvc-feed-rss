@@ -16,5 +16,14 @@ namespace FeedRSS.Data
 
         public DbSet<FeedRSS.Models.Feed> Feed { get; set; } = default!;
         public DbSet<FeedRSS.Models.Article> Article { get; set; } = default!;
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Article>()
+                .HasIndex(a => new { a.FeedId, a.Link })
+                .IsUnique();
+        }
     }
 }
