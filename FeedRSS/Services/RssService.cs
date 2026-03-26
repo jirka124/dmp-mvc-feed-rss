@@ -2,31 +2,31 @@ using System.ServiceModel.Syndication;
 using System.Xml;
 using FeedRSS.Data;
 using FeedRSS.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace FeedRSS.Services;
 
 public class RssService : IRssService
 {
     private readonly MvcFeedContext _context;
+    private readonly IFeedService _feedService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RssService> _logger;
 
     public RssService(
         MvcFeedContext context,
+        IFeedService feedService,
         IHttpClientFactory httpClientFactory,
         ILogger<RssService> logger)
     {
         _context = context;
+        _feedService = feedService;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
     public async Task<int> ReloadFeedAsync(int feedId, CancellationToken cancellationToken = default)
     {
-        var feed = await _context.Feed
-            .Include(f => f.Articles)
-            .FirstOrDefaultAsync(f => f.Id == feedId, cancellationToken);
+        var feed = await _feedService.GetByIdAsync(feedId, includeArticles: true, cancellationToken);
 
         if (feed is null)
         {

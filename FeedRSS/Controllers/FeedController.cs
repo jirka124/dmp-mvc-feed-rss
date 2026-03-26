@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using FeedRSS.Data;
 using FeedRSS.Models;
 using FeedRSS.Services;
 
@@ -12,19 +11,19 @@ namespace FeedRSS.Controllers
 {
     public class FeedController : Controller
     {
-        private readonly MvcFeedContext _context;
+        private readonly IFeedService _feedService;
         private readonly IRssService _rssService;
 
-        public FeedController(MvcFeedContext context, IRssService rssService)
+        public FeedController(IFeedService feedService, IRssService rssService)
         {
-            _context = context;
+            _feedService = feedService;
             _rssService = rssService;
         }
 
         // GET: Feed
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Feed.ToListAsync());
+            return View(await _feedService.GetAllAsync());
         }
 
         // GET: Feed/Details/5
@@ -35,9 +34,7 @@ namespace FeedRSS.Controllers
                 return NotFound();
             }
 
-            var feed = await _context.Feed
-                .Include(f => f.Articles)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var feed = await _feedService.GetByIdAsync(id.Value, includeArticles: true);
             if (feed == null)
             {
                 return NotFound();
@@ -61,8 +58,7 @@ namespace FeedRSS.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(feed);
-                await _context.SaveChangesAsync();
+                await _feedService.CreateAsync(feed);
                 return RedirectToAction(nameof(Index));
             }
             return View(feed);
@@ -76,7 +72,7 @@ namespace FeedRSS.Controllers
                 return NotFound();
             }
 
-            var feed = await _context.Feed.FindAsync(id);
+            var feed = await _feedService.GetByIdAsync(id.Value);
             if (feed == null)
             {
                 return NotFound();
@@ -100,12 +96,11 @@ namespace FeedRSS.Controllers
             {
                 try
                 {
-                    _context.Update(feed);
-                    await _context.SaveChangesAsync();
+                    await _feedService.UpdateAsync(feed);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!FeedExists(feed.Id))
+                    if (!await _feedService.ExistsAsync(feed.Id))
                     {
                         return NotFound();
                     }
@@ -127,8 +122,7 @@ namespace FeedRSS.Controllers
                 return NotFound();
             }
 
-            var feed = await _context.Feed
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var feed = await _feedService.GetByIdAsync(id.Value);
             if (feed == null)
             {
                 return NotFound();
@@ -142,13 +136,7 @@ namespace FeedRSS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var feed = await _context.Feed.FindAsync(id);
-            if (feed != null)
-            {
-                _context.Feed.Remove(feed);
-            }
-
-            await _context.SaveChangesAsync();
+            await _feedService.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
@@ -156,15 +144,14 @@ namespace FeedRSS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reload(int id, CancellationToken cancellationToken)
         {
-            if (!FeedExists(id))
-            {
-                return NotFound();
-            }
-
             try
             {
                 var added = await _rssService.ReloadFeedAsync(id, cancellationToken);
                 TempData["StatusMessage"] = $"Feed reloaded successfully. Added {added} new article(s).";
+            }
+            catch (InvalidOperationException)
+            {
+                return NotFound();
             }
             catch (Exception)
             {
@@ -172,11 +159,6 @@ namespace FeedRSS.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
-        }
-
-        private bool FeedExists(int id)
-        {
-            return _context.Feed.Any(e => e.Id == id);
         }
     }
 }

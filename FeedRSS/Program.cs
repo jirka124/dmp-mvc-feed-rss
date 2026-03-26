@@ -4,6 +4,7 @@ using FeedRSS.Services;
 var builder = WebApplication.CreateBuilder(args);
 builder.AddFeedDb();
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<IFeedService, FeedService>();
 builder.Services.AddScoped<IRssService, RssService>();
 
 // Add services to the container.
