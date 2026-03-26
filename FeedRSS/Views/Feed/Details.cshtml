@@ -1,0 +1,72 @@
+@model FeedRSS.Models.Feed
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Feed</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Url)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Url)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.LastReloadedAt)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.LastReloadedAt)
+        </dd>
+    </dl>
+</div>
+
+<div class="mt-4">
+    <h4>Articles</h4>
+    @if (Model.Articles.Any())
+    {
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Published</th>
+                    <th>Link</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var article in Model.Articles.OrderByDescending(a => a.PublishedAt))
+            {
+                <tr>
+                    <td>@article.Title</td>
+                    <td>@article.PublishedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(article.Link))
+                        {
+                            <a href="@article.Link" target="_blank" rel="noreferrer noopener">Open</a>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No articles loaded for this feed yet.</p>
+    }
+</div>
+
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
