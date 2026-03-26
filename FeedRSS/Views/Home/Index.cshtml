@@ -1,8 +1,33 @@
-﻿@{
+@{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="mb-4">
+    <p class="text-uppercase small text-muted mb-2">ASP.NET Core MVC</p>
+    <h1 class="display-5 mb-3">Follow your favorite RSS sources in one simple place.</h1>
+    <p class="lead text-muted mb-4">
+        Add feeds, inspect their details, and browse loaded articles without SPA overhead.
+    </p>
+    <a asp-controller="Feed" asp-action="Index" class="btn btn-primary">Open Feed List</a>
+</section>
+
+<section class="row g-3">
+    <div class="col-md-4">
+        <div class="border rounded-4 p-3 h-100 bg-light-subtle">
+            <h4 class="h6">Feed Management</h4>
+            <p class="mb-0 text-muted">Create, edit, and remove RSS feed sources.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="border rounded-4 p-3 h-100 bg-light-subtle">
+            <h4 class="h6">Articles per Feed</h4>
+            <p class="mb-0 text-muted">Articles are displayed in the context of a specific feed.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="border rounded-4 p-3 h-100 bg-light-subtle">
+            <h4 class="h6">Simple Architecture</h4>
+            <p class="mb-0 text-muted">Server-rendered MVC with EF Core and SQLite.</p>
+        </div>
+    </div>
+</section>
