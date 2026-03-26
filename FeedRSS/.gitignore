@@ -2,6 +2,9 @@
 bin/
 obj/
 
+# DB
+DB/
+
 # User-specific files
 *.user
 *.suo

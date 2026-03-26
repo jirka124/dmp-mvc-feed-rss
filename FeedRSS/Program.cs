@@ -1,9 +1,13 @@
+using FeedRSS.Data;
+
 var builder = WebApplication.CreateBuilder(args);
+builder.AddFeedDb();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+app.MigrateDb();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
