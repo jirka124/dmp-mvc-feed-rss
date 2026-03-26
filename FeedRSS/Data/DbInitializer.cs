@@ -21,7 +21,7 @@ public static class DbInitializer
         {
             Name = "Local Test Feed",
             Url = "https://example.local/rss.xml",
-            LastReloadedAt = DateTimeOffset.UtcNow
+            LastReloadedAt = DateTime.UtcNow
         };
 
         testFeed.Articles.Add(new Article
@@ -30,7 +30,7 @@ public static class DbInitializer
             Link = "https://example.local/articles/1",
             Summary = "Seeded test article for quick UI verification.",
             Author = "Seeder",
-            PublishedAt = DateTimeOffset.UtcNow.AddHours(-6),
+            PublishedAt = DateTime.UtcNow.AddHours(-6),
             ExternalId = "local-test-001"
         });
 
@@ -40,7 +40,7 @@ public static class DbInitializer
             Link = "https://example.local/articles/2",
             Summary = "Second seeded test article.",
             Author = "Seeder",
-            PublishedAt = DateTimeOffset.UtcNow.AddHours(-4),
+            PublishedAt = DateTime.UtcNow.AddHours(-4),
             ExternalId = "local-test-002"
         });
 
@@ -50,7 +50,7 @@ public static class DbInitializer
             Link = "https://example.local/articles/3",
             Summary = "Third seeded test article.",
             Author = "Seeder",
-            PublishedAt = DateTimeOffset.UtcNow.AddHours(-2),
+            PublishedAt = DateTime.UtcNow.AddHours(-2),
             ExternalId = "local-test-003"
         });
 

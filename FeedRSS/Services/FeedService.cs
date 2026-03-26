@@ -1,5 +1,6 @@
 using FeedRSS.Data;
 using FeedRSS.Models;
+using FeedRSS.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace FeedRSS.Services;
@@ -18,16 +19,8 @@ public class FeedService : IFeedService
         return _context.Feed.ToListAsync(cancellationToken);
     }
 
-    public Task<Feed?> GetByIdAsync(int id, bool includeArticles = false, CancellationToken cancellationToken = default)
-    {
-        IQueryable<Feed> query = _context.Feed;
-        if (includeArticles)
-        {
-            query = query.Include(f => f.Articles);
-        }
-
-        return query.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
-    }
+    public Task<Feed?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        => _context.Feed.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
     public async Task CreateAsync(Feed feed, CancellationToken cancellationToken = default)
     {
@@ -57,5 +50,47 @@ public class FeedService : IFeedService
     public Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
         return _context.Feed.AnyAsync(f => f.Id == id, cancellationToken);
+    }
+
+    public async Task<FeedDetailsViewModel?> GetDetailsAsync(
+        int id,
+        DateOnly? from = null,
+        DateOnly? to = null,
+        CancellationToken cancellationToken = default)
+    {
+        var feed = await _context.Feed
+            .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+
+        if (feed is null)
+        {
+            return null;
+        }
+
+        IQueryable<Article> query = _context.Article
+            .Where(a => a.FeedId == id);
+
+        if (from.HasValue)
+        {
+            var fromStart = from.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(a => a.PublishedAt.HasValue && a.PublishedAt.Value >= fromStart);
+        }
+
+        if (to.HasValue)
+        {
+            var toExclusive = to.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(a => a.PublishedAt.HasValue && a.PublishedAt.Value < toExclusive);
+        }
+
+        var articles = await query
+            .OrderByDescending(a => a.PublishedAt)
+            .ToListAsync(cancellationToken);
+
+        return new FeedDetailsViewModel
+        {
+            Feed = feed,
+            Articles = articles,
+            From = from,
+            To = to
+        };
     }
 }

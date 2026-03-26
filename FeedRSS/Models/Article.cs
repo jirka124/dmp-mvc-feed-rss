@@ -33,7 +33,7 @@ public class Article
 
     [Display(Name = "Published")]
     [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd HH:mm}")]
-    public DateTimeOffset? PublishedAt { get; set; }
+    public DateTime? PublishedAt { get; set; }
 
     [StringLength(500)]
     [Display(Name = "External ID")]

@@ -27,20 +27,25 @@ namespace FeedRSS.Controllers
         }
 
         // GET: Feed/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int? id, DateOnly? from, DateOnly? to)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
-            var feed = await _feedService.GetByIdAsync(id.Value, includeArticles: true);
-            if (feed == null)
+            if (from.HasValue && to.HasValue && from > to)
+            {
+                ModelState.AddModelError(string.Empty, "'From' date must be earlier than or equal to 'To' date.");
+            }
+
+            var details = await _feedService.GetDetailsAsync(id.Value, from, to);
+            if (details == null)
             {
                 return NotFound();
             }
 
-            return View(feed);
+            return View(details);
         }
 
         // GET: Feed/Create

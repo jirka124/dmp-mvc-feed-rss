@@ -26,12 +26,12 @@ public class RssService : IRssService
 
     public async Task<int> ReloadFeedAsync(int feedId, CancellationToken cancellationToken = default)
     {
-        var feed = await _feedService.GetByIdAsync(feedId, includeArticles: true, cancellationToken);
-
-        if (feed is null)
+        var details = await _feedService.GetDetailsAsync(feedId, cancellationToken: cancellationToken);
+        if (details is null)
         {
             throw new InvalidOperationException($"Feed with id '{feedId}' was not found.");
         }
+        var feed = details.Feed;
 
         var client = _httpClientFactory.CreateClient();
         using var stream = await client.GetStreamAsync(feed.Url, cancellationToken);
@@ -44,7 +44,7 @@ public class RssService : IRssService
             return 0;
         }
 
-        var knownLinks = feed.Articles
+        var knownLinks = details.Articles
             .Where(a => !string.IsNullOrWhiteSpace(a.Link))
             .Select(a => NormalizeLink(a.Link)!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -66,10 +66,10 @@ public class RssService : IRssService
             }
 
             var publishedAt = item.PublishDate != DateTimeOffset.MinValue
-                ? item.PublishDate
+                ? item.PublishDate.UtcDateTime
                 : item.LastUpdatedTime != DateTimeOffset.MinValue
-                    ? item.LastUpdatedTime
-                    : (DateTimeOffset?)null;
+                    ? item.LastUpdatedTime.UtcDateTime
+                    : (DateTime?)null;
 
             var article = new Article
             {
@@ -88,7 +88,7 @@ public class RssService : IRssService
             knownLinks.Add(articleLink);
         }
 
-        feed.LastReloadedAt = DateTimeOffset.UtcNow;
+        feed.LastReloadedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
 
         return addedCount;

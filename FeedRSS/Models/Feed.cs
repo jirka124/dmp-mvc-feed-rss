@@ -19,7 +19,7 @@ public class Feed
 
     [Display(Name = "Last Reloaded")]
     [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd HH:mm}")]
-    public DateTimeOffset? LastReloadedAt { get; set; }
+    public DateTime? LastReloadedAt { get; set; }
 
     public ICollection<Article> Articles { get; set; } = new List<Article>();
 }
