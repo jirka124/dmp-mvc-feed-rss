@@ -27,8 +27,8 @@
 {
             <tr>
                 <td class="fw-semibold">@Html.DisplayFor(modelItem => item.Name)</td>
-                <td><a href="@item.Url" target="_blank" rel="noreferrer noopener">@item.Url</a></td>
-                <td>@(item.LastReloadedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                <td><a href="@item.Url" target="_blank" rel="noreferrer noopener">@Html.DisplayFor(modelItem => item.Url)</a></td>
+                <td>@Html.DisplayFor(modelItem => item.LastReloadedAt)</td>
                 <td class="text-end">
                     <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
                     <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |

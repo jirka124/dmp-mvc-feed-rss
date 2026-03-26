@@ -20,12 +20,12 @@
         <div class="border rounded-4 p-3 h-100">
             <h4 class="h6 text-muted text-uppercase mb-3">Feed Info</h4>
             <dl class="mb-0">
-                <dt>Name</dt>
-                <dd class="mb-3">@Model.Name</dd>
-                <dt>Url</dt>
+                <dt>@Html.DisplayNameFor(model => model.Name)</dt>
+                <dd class="mb-3">@Html.DisplayFor(model => model.Name)</dd>
+                <dt>@Html.DisplayNameFor(model => model.Url)</dt>
                 <dd class="mb-3"><a href="@Model.Url" target="_blank" rel="noreferrer noopener">@Model.Url</a></dd>
-                <dt>Last Reloaded</dt>
-                <dd class="mb-0">@(Model.LastReloadedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</dd>
+                <dt>@Html.DisplayNameFor(model => model.LastReloadedAt)</dt>
+                <dd class="mb-0">@Html.DisplayFor(model => model.LastReloadedAt)</dd>
             </dl>
         </div>
     </div>
@@ -41,17 +41,17 @@
                     <table class="table table-sm align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Title</th>
-                                <th>Published</th>
-                                <th>Link</th>
+                                <th>@Html.DisplayNameFor(model => model.Articles.First().Title)</th>
+                                <th>@Html.DisplayNameFor(model => model.Articles.First().PublishedAt)</th>
+                                <th>@Html.DisplayNameFor(model => model.Articles.First().Link)</th>
                             </tr>
                         </thead>
                         <tbody>
                         @foreach (var article in Model.Articles.OrderByDescending(a => a.PublishedAt))
                         {
                             <tr>
-                                <td>@article.Title</td>
-                                <td>@(article.PublishedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                                <td>@Html.DisplayFor(_ => article.Title)</td>
+                                <td>@Html.DisplayFor(_ => article.PublishedAt)</td>
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(article.Link))
                                     {
