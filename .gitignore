@@ -1,0 +1,32 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# Local tooling/cache created by dotnet CLI in workspace
+.dotnet/
+.nuget/
+.templateengine/
+
+# Test artifacts
+**/TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# logs
+*.log
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
