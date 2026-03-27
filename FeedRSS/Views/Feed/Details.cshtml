@@ -20,7 +20,8 @@
 
 @if (TempData["StatusMessage"] is string statusMessage)
 {
-    <div class="alert alert-info" role="alert">@statusMessage</div>
+    var statusType = TempData["StatusType"] as string ?? "info";
+    <div class="alert alert-@statusType" role="alert">@statusMessage</div>
 }
 
 @if (!ViewData.ModelState.IsValid)
@@ -104,7 +105,14 @@
             }
             else
             {
-                <p class="text-muted mb-0">No articles loaded for this feed yet.</p>
+                @if (Model.From.HasValue || Model.To.HasValue || !string.IsNullOrWhiteSpace(Model.TitleSearch))
+                {
+                    <p class="text-muted mb-0">No articles match your current filters.</p>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No articles loaded for this feed yet.</p>
+                }
             }
         </div>
     </div>

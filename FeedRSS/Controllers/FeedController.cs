@@ -14,6 +14,8 @@ namespace FeedRSS.Controllers
     {
         private readonly IFeedService _feedService;
         private readonly IRssService _rssService;
+        private const string StatusMessageKey = "StatusMessage";
+        private const string StatusTypeKey = "StatusType";
 
         public FeedController(IFeedService feedService, IRssService rssService)
         {
@@ -45,6 +47,8 @@ namespace FeedRSS.Controllers
             if (from.HasValue && to.HasValue && from > to)
             {
                 ModelState.AddModelError(string.Empty, "'From' date must be earlier than or equal to 'To' date.");
+                from = null;
+                to = null;
             }
 
             var details = await _feedService.GetDetailsAsync(id.Value, from, to, titleSearch);
@@ -72,6 +76,7 @@ namespace FeedRSS.Controllers
             if (ModelState.IsValid)
             {
                 await _feedService.CreateAsync(feed);
+                SetStatusSuccess("Feed was added successfully.");
                 return RedirectToAction(nameof(Index));
             }
             return View(feed);
@@ -110,6 +115,7 @@ namespace FeedRSS.Controllers
                 try
                 {
                     await _feedService.UpdateAsync(feed);
+                    SetStatusSuccess("Feed was updated successfully.");
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -149,22 +155,39 @@ namespace FeedRSS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            await _feedService.DeleteAsync(id);
+            var deleted = await _feedService.DeleteAsync(id);
+            if (deleted)
+            {
+                SetStatusSuccess("Feed was deleted successfully.");
+            }
+            else
+            {
+                SetStatusWarning("Feed was already deleted or does not exist.");
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteSelected(int[] selectedFeedIds, string? searchTerm, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteSelected(int[]? selectedFeedIds, string? searchTerm, CancellationToken cancellationToken)
         {
-            if (selectedFeedIds.Length == 0)
+            if (selectedFeedIds is null || selectedFeedIds.Length == 0)
             {
-                TempData["StatusMessage"] = "No feeds selected.";
+                SetStatusWarning("No feeds selected for deletion.");
                 return RedirectToAction(nameof(Index), new { searchTerm });
             }
 
             var deletedCount = await _feedService.DeleteBulkAsync(selectedFeedIds, cancellationToken);
-            TempData["StatusMessage"] = $"Deleted {deletedCount} feed(s).";
+            if (deletedCount == 0)
+            {
+                SetStatusWarning("Selected feeds were not found or were already deleted.");
+            }
+            else
+            {
+                SetStatusSuccess($"Deleted {deletedCount} feed(s).");
+            }
+
             return RedirectToAction(nameof(Index), new { searchTerm });
         }
 
@@ -175,18 +198,50 @@ namespace FeedRSS.Controllers
             try
             {
                 var result = await _rssService.ReloadFeedAsync(id, cancellationToken);
-                TempData["StatusMessage"] = $"Feed reloaded successfully. Added {result.AddedCount} new article(s), updated {result.UpdatedCount} article(s).";
+                SetStatusSuccess($"Feed reloaded. Added {result.AddedCount} new article(s), updated {result.UpdatedCount} article(s).");
             }
-            catch (InvalidOperationException)
+            catch (FeedReloadException ex) when (ex.Reason == FeedReloadFailureReason.FeedNotFound)
             {
-                return NotFound();
+                SetStatusWarning("Feed was not found.");
+                return RedirectToAction(nameof(Index));
+            }
+            catch (FeedReloadException ex)
+            {
+                SetStatusError(MapReloadFailureMessage(ex.Reason));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                SetStatusWarning("Feed reload was canceled.");
             }
             catch (Exception)
             {
-                TempData["StatusMessage"] = "Feed reload failed. Please check the feed URL and try again.";
+                SetStatusError("Feed reload failed due to an unexpected error.");
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        private void SetStatusSuccess(string message) => SetStatus(message, "success");
+        private void SetStatusWarning(string message) => SetStatus(message, "warning");
+        private void SetStatusError(string message) => SetStatus(message, "danger");
+
+        private void SetStatus(string message, string type)
+        {
+            TempData[StatusMessageKey] = message;
+            TempData[StatusTypeKey] = type;
+        }
+
+        private static string MapReloadFailureMessage(FeedReloadFailureReason reason)
+        {
+            return reason switch
+            {
+                FeedReloadFailureReason.InvalidFeedUrl => "Feed URL is invalid.",
+                FeedReloadFailureReason.FeedUnavailable => "Feed endpoint was not found.",
+                FeedReloadFailureReason.Timeout => "Feed reload timed out. Please try again.",
+                FeedReloadFailureReason.InvalidRss => "Feed content is invalid or not a supported RSS/Atom format.",
+                FeedReloadFailureReason.RequestFailed => "Failed to download feed data. Please verify the URL and try again.",
+                _ => "Feed reload failed."
+            };
         }
     }
 }

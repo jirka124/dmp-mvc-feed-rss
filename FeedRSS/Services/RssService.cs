@@ -2,6 +2,7 @@ using System.ServiceModel.Syndication;
 using System.Xml;
 using FeedRSS.Data;
 using FeedRSS.Models;
+using FeedRSS.ViewModels;
 
 namespace FeedRSS.Services;
 
@@ -26,24 +27,118 @@ public class RssService : IRssService
 
     public async Task<FeedReloadResult> ReloadFeedAsync(int feedId, CancellationToken cancellationToken = default)
     {
+        var details = await GetFeedDetailsOrThrowAsync(feedId, cancellationToken);
+        var feed = details.Feed;
+        using var response = await DownloadResponseOrThrowAsync(feedId, feed.Url, cancellationToken);
+        var syndicationFeed = await ParseFeedOrThrowAsync(feedId, feed.Url, response, cancellationToken);
+        var result = UpsertItems(feedId, details, syndicationFeed);
+
+        feed.LastReloadedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return result;
+    }
+
+    private async Task<FeedDetailsViewModel> GetFeedDetailsOrThrowAsync(int feedId, CancellationToken cancellationToken)
+    {
         var details = await _feedService.GetDetailsAsync(feedId, cancellationToken: cancellationToken);
         if (details is null)
         {
-            throw new InvalidOperationException($"Feed with id '{feedId}' was not found.");
+            throw new FeedReloadException(
+                FeedReloadFailureReason.FeedNotFound,
+                $"Feed with id '{feedId}' was not found.");
         }
-        var feed = details.Feed;
 
+        return details;
+    }
+
+    private async Task<HttpResponseMessage> DownloadResponseOrThrowAsync(int feedId, string feedUrl, CancellationToken cancellationToken)
+    {
         var client = _httpClientFactory.CreateClient();
-        using var stream = await client.GetStreamAsync(feed.Url, cancellationToken);
-        using var reader = XmlReader.Create(stream, new XmlReaderSettings { Async = true });
 
-        var syndicationFeed = SyndicationFeed.Load(reader);
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.GetAsync(feedUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogError(ex, "Timeout while loading feed {FeedId} from {FeedUrl}.", feedId, feedUrl);
+            throw new FeedReloadException(FeedReloadFailureReason.Timeout, "Reload timed out while downloading the feed.", ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid URL for feed {FeedId}: {FeedUrl}.", feedId, feedUrl);
+            throw new FeedReloadException(FeedReloadFailureReason.InvalidFeedUrl, "Feed URL is invalid.", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP request failed while loading feed {FeedId} from {FeedUrl}.", feedId, feedUrl);
+            throw new FeedReloadException(FeedReloadFailureReason.RequestFailed, "Feed request failed.", ex);
+        }
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Feed endpoint returned 404 for feed {FeedId}: {FeedUrl}.", feedId, feedUrl);
+            response.Dispose();
+            throw new FeedReloadException(FeedReloadFailureReason.FeedUnavailable, "Feed endpoint was not found (404).");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning(
+                "Feed endpoint returned status {StatusCode} for feed {FeedId}: {FeedUrl}.",
+                (int)response.StatusCode,
+                feedId,
+                feedUrl);
+            response.Dispose();
+            throw new FeedReloadException(
+                FeedReloadFailureReason.RequestFailed,
+                $"Feed endpoint returned status {(int)response.StatusCode}.");
+        }
+
+        return response;
+    }
+
+    private async Task<SyndicationFeed> ParseFeedOrThrowAsync(
+        int feedId,
+        string feedUrl,
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        SyndicationFeed? syndicationFeed;
+        try
+        {
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var reader = XmlReader.Create(stream, new XmlReaderSettings { Async = true });
+            syndicationFeed = SyndicationFeed.Load(reader);
+        }
+        catch (XmlException ex)
+        {
+            _logger.LogError(ex, "Invalid XML while parsing feed {FeedId} from {FeedUrl}.", feedId, feedUrl);
+            throw new FeedReloadException(FeedReloadFailureReason.InvalidRss, "Feed content is not a valid XML/RSS document.", ex);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogError(ex, "Invalid RSS format while parsing feed {FeedId} from {FeedUrl}.", feedId, feedUrl);
+            throw new FeedReloadException(FeedReloadFailureReason.InvalidRss, "Feed content has an invalid RSS/Atom format.", ex);
+        }
+
         if (syndicationFeed is null)
         {
-            _logger.LogWarning("Unable to parse RSS feed from URL {FeedUrl}.", feed.Url);
-            return new FeedReloadResult(0, 0);
+            _logger.LogWarning("Syndication feed parser returned null for feed {FeedId} from {FeedUrl}.", feedId, feedUrl);
+            throw new FeedReloadException(FeedReloadFailureReason.InvalidRss, "Feed content could not be parsed.");
         }
 
+        return syndicationFeed;
+    }
+
+    private FeedReloadResult UpsertItems(
+        int feedId,
+        FeedDetailsViewModel details,
+        SyndicationFeed syndicationFeed)
+    {
+        var feed = details.Feed;
         var knownLinks = details.Articles
             .Where(a => !string.IsNullOrWhiteSpace(a.Link))
             .Select(a => new { Link = NormalizeLink(a.Link), Article = a })
@@ -61,7 +156,7 @@ public class RssService : IRssService
             var articleLink = NormalizeLink(ResolveItemLink(item));
             if (string.IsNullOrWhiteSpace(articleLink))
             {
-                _logger.LogDebug("Skipping RSS item without URL in feed {FeedUrl}.", feed.Url);
+                _logger.LogDebug("Skipping RSS item without URL in feed {FeedId} from {FeedUrl}.", feedId, feed.Url);
                 continue;
             }
 
@@ -87,9 +182,6 @@ public class RssService : IRssService
 
             knownLinks[articleLink] = article;
         }
-
-        feed.LastReloadedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync(cancellationToken);
 
         return new FeedReloadResult(addedCount, updatedCount);
     }
