@@ -15,5 +15,6 @@ public interface IFeedService
         int id,
         DateOnly? from = null,
         DateOnly? to = null,
+        string? titleSearch = null,
         CancellationToken cancellationToken = default);
 }

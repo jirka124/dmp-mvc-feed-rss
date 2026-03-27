@@ -8,4 +8,5 @@ public class FeedDetailsViewModel
     public required IReadOnlyList<Article> Articles { get; init; }
     public DateOnly? From { get; init; }
     public DateOnly? To { get; init; }
+    public string? TitleSearch { get; init; }
 }

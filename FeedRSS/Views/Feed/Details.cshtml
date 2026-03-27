@@ -46,6 +46,10 @@
         <div class="border rounded-4 p-3 h-100">
             <form asp-action="Details" method="get" class="row g-2 mb-3">
                 <input type="hidden" name="id" value="@Model.Feed.Id" />
+                <div class="col-12">
+                    <label for="titleSearch" class="form-label mb-1">Article title contains</label>
+                    <input type="search" id="titleSearch" name="titleSearch" value="@Model.TitleSearch" class="form-control" placeholder="Search by article title..." />
+                </div>
                 <div class="col-12 col-md-4">
                     <label for="from" class="form-label mb-1">From</label>
                     <input type="date" id="from" name="from" value="@Model.From?.ToString("yyyy-MM-dd")" class="form-control" />
@@ -59,6 +63,11 @@
                     <a asp-action="Details" asp-route-id="@Model.Feed.Id" class="btn btn-outline-secondary">Clear</a>
                 </div>
             </form>
+
+            @if (!string.IsNullOrWhiteSpace(Model.TitleSearch))
+            {
+                <p class="text-muted small mb-3">Filtered by title: "@Model.TitleSearch"</p>
+            }
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="h6 text-muted text-uppercase mb-0">Articles</h4>

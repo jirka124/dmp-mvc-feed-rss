@@ -65,6 +65,7 @@ public class FeedService : IFeedService
         int id,
         DateOnly? from = null,
         DateOnly? to = null,
+        string? titleSearch = null,
         CancellationToken cancellationToken = default)
     {
         var feed = await _context.Feed
@@ -90,6 +91,12 @@ public class FeedService : IFeedService
             query = query.Where(a => a.PublishedAt.HasValue && a.PublishedAt.Value < toExclusive);
         }
 
+        if (!string.IsNullOrWhiteSpace(titleSearch))
+        {
+            var normalized = titleSearch.Trim();
+            query = query.Where(a => EF.Functions.Like(a.Title, $"%{normalized}%"));
+        }
+
         var articles = await query
             .OrderByDescending(a => a.PublishedAt)
             .ToListAsync(cancellationToken);
@@ -99,7 +106,8 @@ public class FeedService : IFeedService
             Feed = feed,
             Articles = articles,
             From = from,
-            To = to
+            To = to,
+            TitleSearch = titleSearch
         };
     }
 

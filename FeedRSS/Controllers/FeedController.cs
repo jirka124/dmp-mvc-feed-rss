@@ -35,7 +35,7 @@ namespace FeedRSS.Controllers
         }
 
         // GET: Feed/Details/5
-        public async Task<IActionResult> Details(int? id, DateOnly? from, DateOnly? to)
+        public async Task<IActionResult> Details(int? id, DateOnly? from, DateOnly? to, string? titleSearch)
         {
             if (id == null)
             {
@@ -47,7 +47,7 @@ namespace FeedRSS.Controllers
                 ModelState.AddModelError(string.Empty, "'From' date must be earlier than or equal to 'To' date.");
             }
 
-            var details = await _feedService.GetDetailsAsync(id.Value, from, to);
+            var details = await _feedService.GetDetailsAsync(id.Value, from, to, titleSearch);
             if (details == null)
             {
                 return NotFound();
