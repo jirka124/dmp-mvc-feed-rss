@@ -36,6 +36,11 @@ public class Article
     [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd HH:mm}")]
     public DateTime? PublishedAt { get; set; }
 
+    [Display(Name = "Last Updated")]
+    [UIHint("LocalDateTime")]
+    [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd HH:mm}")]
+    public DateTime? LastUpdatedAt { get; set; }
+
     [StringLength(500)]
     [Display(Name = "External ID")]
     public string? ExternalId { get; set; }

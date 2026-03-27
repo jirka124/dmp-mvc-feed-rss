@@ -174,8 +174,8 @@ namespace FeedRSS.Controllers
         {
             try
             {
-                var added = await _rssService.ReloadFeedAsync(id, cancellationToken);
-                TempData["StatusMessage"] = $"Feed reloaded successfully. Added {added} new article(s).";
+                var result = await _rssService.ReloadFeedAsync(id, cancellationToken);
+                TempData["StatusMessage"] = $"Feed reloaded successfully. Added {result.AddedCount} new article(s), updated {result.UpdatedCount} article(s).";
             }
             catch (InvalidOperationException)
             {

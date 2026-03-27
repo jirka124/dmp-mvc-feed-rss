@@ -24,7 +24,7 @@ public class RssService : IRssService
         _logger = logger;
     }
 
-    public async Task<int> ReloadFeedAsync(int feedId, CancellationToken cancellationToken = default)
+    public async Task<FeedReloadResult> ReloadFeedAsync(int feedId, CancellationToken cancellationToken = default)
     {
         var details = await _feedService.GetDetailsAsync(feedId, cancellationToken: cancellationToken);
         if (details is null)
@@ -41,15 +41,20 @@ public class RssService : IRssService
         if (syndicationFeed is null)
         {
             _logger.LogWarning("Unable to parse RSS feed from URL {FeedUrl}.", feed.Url);
-            return 0;
+            return new FeedReloadResult(0, 0);
         }
 
         var knownLinks = details.Articles
             .Where(a => !string.IsNullOrWhiteSpace(a.Link))
-            .Select(a => NormalizeLink(a.Link)!)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .Select(a => new { Link = NormalizeLink(a.Link), Article = a })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Link))
+            .ToDictionary(
+                x => x.Link!,
+                x => x.Article,
+                StringComparer.OrdinalIgnoreCase);
 
         var addedCount = 0;
+        var updatedCount = 0;
 
         foreach (var item in syndicationFeed.Items)
         {
@@ -60,38 +65,33 @@ public class RssService : IRssService
                 continue;
             }
 
-            if (knownLinks.Contains(articleLink))
+            if (knownLinks.TryGetValue(articleLink, out var knownArticle))
             {
+                if (!ShouldUpdateArticle(knownArticle, item))
+                {
+                    continue;
+                }
+
+                ApplyItemToArticle(knownArticle, item);
+                updatedCount++;
                 continue;
             }
 
-            var publishedAt = item.PublishDate != DateTimeOffset.MinValue
-                ? item.PublishDate.UtcDateTime
-                : item.LastUpdatedTime != DateTimeOffset.MinValue
-                    ? item.LastUpdatedTime.UtcDateTime
-                    : (DateTime?)null;
-
-            var article = new Article
-            {
-                FeedId = feed.Id,
-                Title = item.Title?.Text?.Trim() ?? "(Untitled)",
-                Link = articleLink,
-                Summary = item.Summary?.Text,
-                Author = item.Authors.FirstOrDefault()?.Name,
-                PublishedAt = publishedAt,
-                ExternalId = ResolveExternalId(item)
-            };
+            var article = new Article();
+            ApplyItemToArticle(article, item);
+            article.FeedId = feed.Id;
+            article.Link = articleLink;
 
             _context.Article.Add(article);
             addedCount++;
 
-            knownLinks.Add(articleLink);
+            knownLinks[articleLink] = article;
         }
 
         feed.LastReloadedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
 
-        return addedCount;
+        return new FeedReloadResult(addedCount, updatedCount);
     }
 
     private static string? ResolveItemLink(SyndicationItem item)
@@ -119,5 +119,62 @@ public class RssService : IRssService
 
         var normalized = link.Trim();
         return normalized.Length == 0 ? null : normalized;
+    }
+
+    private static string ResolveTitle(SyndicationItem item)
+    {
+        return item.Title?.Text?.Trim() ?? "(Untitled)";
+    }
+
+    private static string? ResolveAuthor(SyndicationItem item)
+    {
+        return item.Authors.FirstOrDefault()?.Name;
+    }
+
+    private static DateTime? ResolvePublishedAt(SyndicationItem item)
+    {
+        if (item.PublishDate != DateTimeOffset.MinValue)
+        {
+            return item.PublishDate.UtcDateTime;
+        }
+
+        if (item.LastUpdatedTime != DateTimeOffset.MinValue)
+        {
+            return item.LastUpdatedTime.UtcDateTime;
+        }
+
+        return null;
+    }
+
+    private static DateTime? ResolveLastUpdatedAt(SyndicationItem item)
+    {
+        if (item.LastUpdatedTime != DateTimeOffset.MinValue)
+        {
+            return item.LastUpdatedTime.UtcDateTime;
+        }
+
+        return null;
+    }
+
+    private static bool ShouldUpdateArticle(Article article, SyndicationItem item)
+    {
+        var incomingPublishedAt = ResolvePublishedAt(item);
+        var incomingLastUpdatedAt = ResolveLastUpdatedAt(item);
+        return IsNewer(incomingPublishedAt, article.PublishedAt) || IsNewer(incomingLastUpdatedAt, article.LastUpdatedAt);
+    }
+
+    private static bool IsNewer(DateTime? incoming, DateTime? existing)
+    {
+        return incoming.HasValue && (!existing.HasValue || incoming.Value > existing.Value);
+    }
+
+    private static void ApplyItemToArticle(Article article, SyndicationItem item)
+    {
+        article.Title = ResolveTitle(item);
+        article.Summary = item.Summary?.Text;
+        article.Author = ResolveAuthor(item);
+        article.PublishedAt = ResolvePublishedAt(item);
+        article.LastUpdatedAt = ResolveLastUpdatedAt(item);
+        article.ExternalId = ResolveExternalId(item);
     }
 }
