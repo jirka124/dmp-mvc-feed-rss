@@ -1,7 +1,8 @@
-@model IEnumerable<FeedRSS.Models.Feed>
+@model FeedRSS.ViewModels.FeedIndexViewModel
 
 @{
     ViewData["Title"] = "Feeds";
+    var searchTerm = Model.SearchTerm;
 }
 
 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
@@ -12,6 +13,26 @@
     <a asp-action="Create" class="btn btn-primary">Add Feed</a>
 </div>
 
+<form asp-action="Index" method="get" class="row g-2 mb-3">
+    <div class="col-12 col-md-5 col-lg-4">
+        <input
+            type="search"
+            name="searchTerm"
+            value="@searchTerm"
+            class="form-control"
+            placeholder="Search feed by name..." />
+    </div>
+    <div class="col-auto d-flex gap-2">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(searchTerm))
+{
+    <p class="text-muted small mb-3">Showing @Model.Feeds.Count result(s) for "@searchTerm".</p>
+}
+
 @if (TempData["StatusMessage"] is string statusMessage)
 {
     <div class="alert alert-info" role="alert">@statusMessage</div>
@@ -21,14 +42,14 @@
     <table class="table align-middle">
         <thead>
             <tr>
-                <th>@Html.DisplayNameFor(model => model.Name)</th>
-                <th>@Html.DisplayNameFor(model => model.Url)</th>
-                <th>@Html.DisplayNameFor(model => model.LastReloadedAt)</th>
+                <th>@Html.DisplayNameFor(model => model.Feeds[0].Name)</th>
+                <th>@Html.DisplayNameFor(model => model.Feeds[0].Url)</th>
+                <th>@Html.DisplayNameFor(model => model.Feeds[0].LastReloadedAt)</th>
                 <th class="text-end">Actions</th>
             </tr>
         </thead>
         <tbody>
-@foreach (var item in Model)
+@foreach (var item in Model.Feeds)
 {
             <tr>
                 <td class="fw-semibold">@Html.DisplayFor(modelItem => item.Name)</td>
@@ -47,3 +68,4 @@
         </tbody>
     </table>
 </div>
+

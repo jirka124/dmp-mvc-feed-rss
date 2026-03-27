@@ -14,9 +14,18 @@ public class FeedService : IFeedService
         _context = context;
     }
 
-    public Task<List<Feed>> GetAllAsync(CancellationToken cancellationToken = default)
+    public Task<List<Feed>> GetAllAsync(string? searchTerm = null, CancellationToken cancellationToken = default)
     {
-        return _context.Feed.ToListAsync(cancellationToken);
+        IQueryable<Feed> query = _context.Feed;
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var normalized = searchTerm.Trim();
+            query = query.Where(f => EF.Functions.Like(f.Name, $"%{normalized}%"));
+        }
+
+        return query
+            .ToListAsync(cancellationToken);
     }
 
     public Task<Feed?> GetByIdAsync(int id, CancellationToken cancellationToken = default)

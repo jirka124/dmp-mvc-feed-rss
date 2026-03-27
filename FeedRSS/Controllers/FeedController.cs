@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FeedRSS.Models;
 using FeedRSS.Services;
+using FeedRSS.ViewModels;
 
 namespace FeedRSS.Controllers
 {
@@ -21,9 +22,16 @@ namespace FeedRSS.Controllers
         }
 
         // GET: Feed
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? searchTerm)
         {
-            return View(await _feedService.GetAllAsync());
+            var feeds = await _feedService.GetAllAsync(searchTerm);
+            var vm = new FeedIndexViewModel
+            {
+                Feeds = feeds,
+                SearchTerm = searchTerm
+            };
+
+            return View(vm);
         }
 
         // GET: Feed/Details/5
