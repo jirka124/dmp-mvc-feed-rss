@@ -18,6 +18,7 @@ public class Feed
     public string Url { get; set; } = string.Empty;
 
     [Display(Name = "Last Reloaded")]
+    [UIHint("LocalDateTime")]
     [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd HH:mm}")]
     public DateTime? LastReloadedAt { get; set; }
 

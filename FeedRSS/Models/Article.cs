@@ -32,6 +32,7 @@ public class Article
     public string? Author { get; set; }
 
     [Display(Name = "Published")]
+    [UIHint("LocalDateTime")]
     [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd HH:mm}")]
     public DateTime? PublishedAt { get; set; }
 

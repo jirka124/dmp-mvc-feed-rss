@@ -1,0 +1,16 @@
+@model DateTime?
+
+@using System.Globalization
+
+@if (Model.HasValue)
+{
+    var utcValue = Model.Value.Kind == DateTimeKind.Utc
+        ? Model.Value
+        : DateTime.SpecifyKind(Model.Value, DateTimeKind.Utc);
+
+    var format = string.IsNullOrWhiteSpace(ViewData.ModelMetadata.DisplayFormatString)
+        ? "{0:yyyy-MM-dd HH:mm}"
+        : ViewData.ModelMetadata.DisplayFormatString;
+
+    @string.Format(CultureInfo.CurrentCulture, format, utcValue)
+}

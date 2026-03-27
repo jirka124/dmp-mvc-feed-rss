@@ -71,13 +71,13 @@ public class FeedService : IFeedService
 
         if (from.HasValue)
         {
-            var fromStart = from.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var fromStart = ToUtcStartOfLocalDay(from.Value);
             query = query.Where(a => a.PublishedAt.HasValue && a.PublishedAt.Value >= fromStart);
         }
 
         if (to.HasValue)
         {
-            var toExclusive = to.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusive = ToUtcStartOfLocalDay(to.Value.AddDays(1));
             query = query.Where(a => a.PublishedAt.HasValue && a.PublishedAt.Value < toExclusive);
         }
 
@@ -92,5 +92,11 @@ public class FeedService : IFeedService
             From = from,
             To = to
         };
+    }
+
+    private static DateTime ToUtcStartOfLocalDay(DateOnly date)
+    {
+        var localStart = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local);
+        return localStart.ToUniversalTime();
     }
 }
