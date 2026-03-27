@@ -56,6 +56,28 @@ public class FeedService : IFeedService
         return true;
     }
 
+    public async Task<int> DeleteBulkAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default)
+    {
+        var distinctIds = ids.Distinct().ToArray();
+        if (distinctIds.Length == 0)
+        {
+            return 0;
+        }
+
+        var feedsToDelete = await _context.Feed
+            .Where(f => distinctIds.Contains(f.Id))
+            .ToListAsync(cancellationToken);
+
+        if (feedsToDelete.Count == 0)
+        {
+            return 0;
+        }
+
+        _context.Feed.RemoveRange(feedsToDelete);
+        await _context.SaveChangesAsync(cancellationToken);
+        return feedsToDelete.Count;
+    }
+
     public Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
         return _context.Feed.AnyAsync(f => f.Id == id, cancellationToken);

@@ -38,34 +38,93 @@
     <div class="alert alert-info" role="alert">@statusMessage</div>
 }
 
-<div class="table-responsive">
-    <table class="table align-middle">
-        <thead>
-            <tr>
-                <th>@Html.DisplayNameFor(model => model.Feeds[0].Name)</th>
-                <th>@Html.DisplayNameFor(model => model.Feeds[0].Url)</th>
-                <th>@Html.DisplayNameFor(model => model.Feeds[0].LastReloadedAt)</th>
-                <th class="text-end">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-@foreach (var item in Model.Feeds)
-{
-            <tr>
-                <td class="fw-semibold">@Html.DisplayFor(modelItem => item.Name)</td>
-                <td><a href="@item.Url" target="_blank" rel="noreferrer noopener">@Html.DisplayFor(modelItem => item.Url)</a></td>
-                <td>@Html.DisplayFor(modelItem => item.LastReloadedAt)</td>
-                <td class="text-end">
-                    <form asp-action="Reload" asp-route-id="@item.Id" method="post" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-outline-primary">Reload</button>
-                    </form> |
-                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-                </td>
-            </tr>
-}
-        </tbody>
-    </table>
-</div>
+<form asp-action="DeleteSelected" method="post">
+    <input type="hidden" name="searchTerm" value="@searchTerm" />
 
+    <div id="bulkActions" class="d-none d-flex align-items-center gap-2 mb-3">
+        <span id="selectedCountText" class="text-muted small"></span>
+        <button id="deleteSelectedButton" type="submit" class="btn btn-danger btn-sm">Delete selected</button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th class="text-center" style="width: 52px;">
+                        <input type="checkbox" id="masterFeedCheckbox" aria-label="Select all feeds" />
+                    </th>
+                    <th>@Html.DisplayNameFor(model => model.Feeds[0].Name)</th>
+                    <th>@Html.DisplayNameFor(model => model.Feeds[0].Url)</th>
+                    <th>@Html.DisplayNameFor(model => model.Feeds[0].LastReloadedAt)</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Feeds.Any())
+            {
+                @foreach (var item in Model.Feeds)
+                {
+                    <tr>
+                        <td class="text-center">
+                            <input type="checkbox" class="feed-checkbox" name="selectedFeedIds" value="@item.Id" aria-label="Select @item.Name" />
+                        </td>
+                        <td class="fw-semibold">@Html.DisplayFor(modelItem => item.Name)</td>
+                        <td><a href="@item.Url" target="_blank" rel="noreferrer noopener">@Html.DisplayFor(modelItem => item.Url)</a></td>
+                        <td>@Html.DisplayFor(modelItem => item.LastReloadedAt)</td>
+                        <td class="text-end">
+                            <button
+                                type="submit"
+                                formaction="@Url.Action("Reload", "Feed", new { id = item.Id })"
+                                formmethod="post"
+                                class="btn btn-sm btn-outline-primary">Reload</button> |
+                            <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                            <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                            <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5" class="text-muted">No feeds found.</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        (function () {
+            const master = document.getElementById('masterFeedCheckbox');
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCountText = document.getElementById('selectedCountText');
+            const deleteSelectedButton = document.getElementById('deleteSelectedButton');
+            const checkboxes = Array.from(document.querySelectorAll('.feed-checkbox'));
+
+            if (!master || !bulkActions || !selectedCountText || !deleteSelectedButton || checkboxes.length === 0) {
+                return;
+            }
+
+            const syncUi = () => {
+                const selectedCount = checkboxes.filter(cb => cb.checked).length;
+                const allChecked = selectedCount > 0 && selectedCount === checkboxes.length;
+
+                master.checked = allChecked;
+                bulkActions.classList.toggle('d-none', selectedCount === 0);
+                selectedCountText.textContent = `${selectedCount} selected`;
+                deleteSelectedButton.disabled = selectedCount === 0;
+            };
+
+            master.addEventListener('change', () => {
+                checkboxes.forEach(cb => cb.checked = master.checked);
+                syncUi();
+            });
+
+            checkboxes.forEach(cb => cb.addEventListener('change', syncUi));
+            syncUi();
+        })();
+    </script>
+}

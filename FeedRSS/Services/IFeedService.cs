@@ -10,6 +10,7 @@ public interface IFeedService
     Task CreateAsync(Feed feed, CancellationToken cancellationToken = default);
     Task UpdateAsync(Feed feed, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<int> DeleteBulkAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default);
     Task<FeedDetailsViewModel?> GetDetailsAsync(
         int id,

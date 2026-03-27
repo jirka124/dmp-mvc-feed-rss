@@ -155,6 +155,21 @@ namespace FeedRSS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteSelected(int[] selectedFeedIds, string? searchTerm, CancellationToken cancellationToken)
+        {
+            if (selectedFeedIds.Length == 0)
+            {
+                TempData["StatusMessage"] = "No feeds selected.";
+                return RedirectToAction(nameof(Index), new { searchTerm });
+            }
+
+            var deletedCount = await _feedService.DeleteBulkAsync(selectedFeedIds, cancellationToken);
+            TempData["StatusMessage"] = $"Deleted {deletedCount} feed(s).";
+            return RedirectToAction(nameof(Index), new { searchTerm });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reload(int id, CancellationToken cancellationToken)
         {
             try
