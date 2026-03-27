@@ -14,9 +14,9 @@ public class FeedService : IFeedService
         _context = context;
     }
 
-    public Task<List<Feed>> GetAllAsync(string? searchTerm = null, CancellationToken cancellationToken = default)
+    public Task<List<Feed>> GetAllAsync(string? searchTerm = null, bool track = false, CancellationToken cancellationToken = default)
     {
-        IQueryable<Feed> query = _context.Feed;
+        IQueryable<Feed> query = track ? _context.Feed : _context.Feed.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -28,8 +28,11 @@ public class FeedService : IFeedService
             .ToListAsync(cancellationToken);
     }
 
-    public Task<Feed?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-        => _context.Feed.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+    public Task<Feed?> GetByIdAsync(int id, bool track = false, CancellationToken cancellationToken = default)
+    {
+        IQueryable<Feed> query = track ? _context.Feed : _context.Feed.AsNoTracking();
+        return query.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+    }
 
     public async Task CreateAsync(Feed feed, CancellationToken cancellationToken = default)
     {
@@ -88,9 +91,11 @@ public class FeedService : IFeedService
         DateOnly? from = null,
         DateOnly? to = null,
         string? titleSearch = null,
+        bool track = false,
         CancellationToken cancellationToken = default)
     {
-        var feed = await _context.Feed
+        IQueryable<Feed> feedQuery = track ? _context.Feed : _context.Feed.AsNoTracking();
+        var feed = await feedQuery
             .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
         if (feed is null)
@@ -98,7 +103,7 @@ public class FeedService : IFeedService
             return null;
         }
 
-        IQueryable<Article> query = _context.Article
+        IQueryable<Article> query = (track ? _context.Article : _context.Article.AsNoTracking())
             .Where(a => a.FeedId == id);
 
         if (from.HasValue)

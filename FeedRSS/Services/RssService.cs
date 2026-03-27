@@ -41,7 +41,7 @@ public class RssService : IRssService
 
     private async Task<FeedDetailsViewModel> GetFeedDetailsOrThrowAsync(int feedId, CancellationToken cancellationToken)
     {
-        var details = await _feedService.GetDetailsAsync(feedId, cancellationToken: cancellationToken);
+        var details = await _feedService.GetDetailsAsync(feedId, track: true, cancellationToken: cancellationToken);
         if (details is null)
         {
             throw new FeedReloadException(

@@ -45,14 +45,14 @@ public class FeedControllerTests
 
     private sealed class DummyFeedService : IFeedService
     {
-        public Task<List<Feed>> GetAllAsync(string? searchTerm = null, CancellationToken cancellationToken = default) => Task.FromResult(new List<Feed>());
-        public Task<Feed?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<Feed?>(null);
+        public Task<List<Feed>> GetAllAsync(string? searchTerm = null, bool track = false, CancellationToken cancellationToken = default) => Task.FromResult(new List<Feed>());
+        public Task<Feed?> GetByIdAsync(int id, bool track = false, CancellationToken cancellationToken = default) => Task.FromResult<Feed?>(null);
         public Task CreateAsync(Feed feed, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task UpdateAsync(Feed feed, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(false);
         public Task<int> DeleteBulkAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default) => Task.FromResult(0);
         public Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(false);
-        public Task<FeedDetailsViewModel?> GetDetailsAsync(int id, DateOnly? from = null, DateOnly? to = null, string? titleSearch = null, CancellationToken cancellationToken = default)
+        public Task<FeedDetailsViewModel?> GetDetailsAsync(int id, DateOnly? from = null, DateOnly? to = null, string? titleSearch = null, bool track = false, CancellationToken cancellationToken = default)
             => Task.FromResult<FeedDetailsViewModel?>(null);
     }
 
