@@ -24,6 +24,9 @@ namespace FeedRSS.Data
             modelBuilder.Entity<Article>()
                 .HasIndex(a => new { a.FeedId, a.Link })
                 .IsUnique();
+
+            modelBuilder.Entity<Article>()
+                .HasIndex(a => new { a.FeedId, a.PublishedAt });
         }
     }
 }
